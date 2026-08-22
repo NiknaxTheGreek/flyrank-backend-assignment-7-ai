@@ -1,0 +1,13 @@
+
+> @workspace/flyrank-decision-flow@0.0.0 build /home/runner/workspace/artifacts/flyrank-decision-flow
+> vite build --config vite.config.ts
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 2010 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/public/index.html                   1.44 kB │ gzip:   0.55 kB
+dist/public/assets/index-C46APZlE.css  112.27 kB │ gzip:  18.47 kB
+dist/public/assets/index-5XhBdRPT.js   598.56 kB │ gzip: 192.28 kB
+✓ built in 3.92s

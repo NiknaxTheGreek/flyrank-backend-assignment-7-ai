@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: *
+Content-Length: 140
+Content-Type: application/json; charset=utf-8
+Date: Sat, 22 Aug 2026 23:48:55 GMT
+Etag: W/"8c-sknwDtDXAqvNjRSmZ4o3L6lomN4"
+Server-Timing: handler, action;dur=2
+User-Agent: inngest-js:v4.18.1
+X-Inngest-Framework: express
+X-Inngest-Req-Version: 2
+X-Inngest-Sdk: inngest-js:v4.18.1
+X-Inngest-Sdk-Handled: true
+X-Powered-By: Express
+

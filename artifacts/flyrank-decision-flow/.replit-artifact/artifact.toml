@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "FlyRank Decision Flow"
+description = "A visual AI decision-flow editor for composing binary decision graphs, executing them through Inngest-backed steps, and inspecting execution history, errors, and local graph persistence."
+version = "1.0.0"
+id = "artifacts/flyrank-decision-flow"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23305
+
+[services.development]
+run = "pnpm --filter @workspace/flyrank-decision-flow run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/flyrank-decision-flow", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/flyrank-decision-flow/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23305"
+BASE_PATH = "/"

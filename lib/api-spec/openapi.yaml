@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: decision-flow
+    description: AI decision graph execution operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /decision-flow/validate:
+    post:
+      operationId: validateDecisionGraph
+      tags: [decision-flow]
+      summary: Validate a decision graph before execution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionGraph"
+      responses:
+        "200":
+          description: Graph validation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphValidation"
+  /decision-flow/execute:
+    post:
+      operationId: executeDecisionGraph
+      tags: [decision-flow]
+      summary: Start a graph-driven binary decision execution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecutionInput"
+      responses:
+        "200":
+          description: Execution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionResult"
+        "400":
+          description: Invalid graph or execution input
+  /decision-flow/capabilities:
+    get:
+      operationId: getDecisionFlowCapabilities
+      tags: [decision-flow]
+      summary: Get available execution providers and safety limits
+      responses:
+        "200":
+          description: Execution capabilities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionCapabilities"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +85,129 @@ components:
           type: string
       required:
         - status
+    DecisionNode:
+      type: object
+      required: [id, label, prompt]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        label:
+          type: string
+          minLength: 1
+        prompt:
+          type: string
+          minLength: 1
+        context:
+          type: string
+        terminalOutcome:
+          type: string
+    DecisionEdge:
+      type: object
+      required: [id, source, target, branch]
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        target:
+          type: string
+        branch:
+          type: string
+          enum: [YES, "NO"]
+    DecisionGraph:
+      type: object
+      required: [nodes, edges]
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DecisionNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/DecisionEdge"
+    GraphValidation:
+      type: object
+      required: [valid, errors, warnings]
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+    ExecutionInput:
+      type: object
+      required: [graph, startNodeId]
+      properties:
+        graph:
+          $ref: "#/components/schemas/DecisionGraph"
+        startNodeId:
+          type: string
+        input:
+          type: string
+        mode:
+          type: string
+          enum: [stub, ai]
+          default: stub
+    ExecutionLogEntry:
+      type: object
+      required: [sequence, nodeId, label, status, message]
+      properties:
+        sequence:
+          type: number
+        nodeId:
+          type: string
+        label:
+          type: string
+        status:
+          type: string
+          enum: [running, routed, completed, error]
+        decision:
+          type: string
+          enum: [YES, "NO"]
+        message:
+          type: string
+        latencyMs:
+          type: number
+    ExecutionResult:
+      type: object
+      required: [status, executionId, visitedNodeIds, logs]
+      properties:
+        status:
+          type: string
+          enum: [completed, failed]
+        executionId:
+          type: string
+        terminalNodeId:
+          type: string
+        terminalOutcome:
+          type: string
+        visitedNodeIds:
+          type: array
+          items:
+            type: string
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExecutionLogEntry"
+        error:
+          type: string
+    ExecutionCapabilities:
+      type: object
+      required: [inngestRegistered, modes, maxSteps]
+      properties:
+        inngestRegistered:
+          type: boolean
+        modes:
+          type: array
+          items:
+            type: string
+        maxSteps:
+          type: number
 

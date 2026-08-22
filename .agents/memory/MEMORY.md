@@ -1,0 +1,1 @@
+- [Inngest local verification](inngest-local-verification.md) — Inngest v4 local runs need dev mode enabled and function triggers declared in the two-argument API.

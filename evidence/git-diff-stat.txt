@@ -1,0 +1,13 @@
+ .gitignore                                        |    3 +
+ .replit                                           |   29 +
+ artifacts/api-server/package.json                 |    9 +-
+ artifacts/api-server/src/app.ts                   |    6 +
+ artifacts/api-server/src/routes/index.ts          |    2 +
+ lib/api-client-react/src/generated/api.schemas.ts |  107 +-
+ lib/api-client-react/src/generated/api.ts         |  387 ++-
+ lib/api-spec/openapi.yaml                         |  177 ++
+ lib/api-zod/src/generated/api.ts                  |  100 +-
+ lib/api-zod/src/generated/types/healthStatus.ts   |    2 +-
+ lib/api-zod/src/generated/types/index.ts          |   17 +-
+ pnpm-lock.yaml                                    | 3224 +++++++++++++++++++--
+ 12 files changed, 3766 insertions(+), 297 deletions(-)

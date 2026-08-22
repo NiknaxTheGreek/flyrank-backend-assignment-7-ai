@@ -1,0 +1,23 @@
+{
+  "provider": "Replit AI Integrations / OpenAI-compatible",
+  "model": "gpt-5.6-luna",
+  "status": "success",
+  "result": "YES",
+  "latencyMs": 1068,
+  "usage": {
+    "prompt_tokens": 50,
+    "completion_tokens": 4,
+    "total_tokens": 54,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  }
+}

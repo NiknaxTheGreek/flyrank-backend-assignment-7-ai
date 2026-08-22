@@ -1,0 +1,5 @@
+Inngest Dev Server checkpoint (captured 2026-08-22):
+registered function_count=1, mode=dev
+received event flyrank/decision-flow.execute
+initialized function execute-decision-graph
+received inngest/function.finished
