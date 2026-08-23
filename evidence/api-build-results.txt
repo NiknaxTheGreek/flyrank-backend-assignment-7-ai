@@ -2,3 +2,12 @@
 > @workspace/api-server@0.0.0 build /home/runner/workspace/artifacts/api-server
 > node ./build.mjs
 
+  dist/index.mjs                       2.4mb ⚠️
+  dist/pino-worker.mjs               153.4kb
+  dist/pino-file.mjs                 142.1kb
+  dist/pino-pretty.mjs               114.4kb
+  dist/thread-stream-worker.mjs        7.3kb
+  dist/index.mjs.map                   6.4mb
+
+⚡ Done in 452ms
+

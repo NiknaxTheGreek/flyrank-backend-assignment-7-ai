@@ -1,35 +1,5 @@
- M .gitignore
- M .replit
- M artifacts/api-server/package.json
- M artifacts/api-server/src/app.ts
- M artifacts/api-server/src/routes/index.ts
- M lib/api-client-react/src/generated/api.schemas.ts
- M lib/api-client-react/src/generated/api.ts
- M lib/api-spec/openapi.yaml
- M lib/api-zod/src/generated/api.ts
- M lib/api-zod/src/generated/types/healthStatus.ts
- M lib/api-zod/src/generated/types/index.ts
- M pnpm-lock.yaml
-?? .agents/
-?? .env.example
-?? README.md
-?? artifacts/api-server/src/lib/decision-flow-engine.ts
-?? artifacts/api-server/src/lib/decision-flow-inngest.ts
-?? artifacts/api-server/src/routes/decision-flow.ts
-?? artifacts/api-server/tests/
-?? artifacts/flyrank-decision-flow/
-?? docs/
-?? evidence/
-?? lib/api-zod/src/generated/types/decisionEdge.ts
-?? lib/api-zod/src/generated/types/decisionEdgeBranch.ts
-?? lib/api-zod/src/generated/types/decisionGraph.ts
-?? lib/api-zod/src/generated/types/decisionNode.ts
-?? lib/api-zod/src/generated/types/executionCapabilities.ts
-?? lib/api-zod/src/generated/types/executionInput.ts
-?? lib/api-zod/src/generated/types/executionInputMode.ts
-?? lib/api-zod/src/generated/types/executionLogEntry.ts
-?? lib/api-zod/src/generated/types/executionLogEntryDecision.ts
-?? lib/api-zod/src/generated/types/executionLogEntryStatus.ts
-?? lib/api-zod/src/generated/types/executionResult.ts
-?? lib/api-zod/src/generated/types/executionResultStatus.ts
-?? lib/api-zod/src/generated/types/graphValidation.ts
+Final state after commit:
+
+## main
+
+No uncommitted paths.

@@ -8,6 +8,14 @@ import type {
   ExecutionResultStatus
 } from '@workspace/api-client-react';
 import { applyEdgeChanges, applyNodeChanges, type Connection, type Edge, type EdgeChange, type Node, type NodeChange } from '@xyflow/react';
+import {
+  appendExecutionRun,
+  EXECUTION_HISTORY_STORAGE_KEY,
+  isExecutionRun,
+  nextAttemptForRetry,
+  type ExecutionRequestSnapshot,
+  type ExecutionRun,
+} from '@/lib/execution-history';
 
 export type FlowNode = Node<DecisionNode & Record<string, unknown>>;
 export type FlowEdge = Edge<{ branch: 'YES' | 'NO' }>;
@@ -19,6 +27,10 @@ interface FlowState {
   executionLogs: ExecutionLogEntry[];
   executionStatus: ExecutionResultStatus | null;
   activeNodeIds: string[];
+  executionHistory: ExecutionRun[];
+  currentRunId: string | null;
+  activeExecution: (ExecutionRequestSnapshot & { id: string; attempt: number; retryOf?: string; startedAt: string }) | null;
+  retryRunId: string | null;
   
   onNodesChange: (changes: NodeChange<FlowNode>[]) => void;
   onEdgesChange: (changes: EdgeChange<FlowEdge>[]) => void;
@@ -33,12 +45,39 @@ interface FlowState {
   setExecutionLogs: (logs: ExecutionLogEntry[], status: ExecutionResultStatus) => void;
   clearExecution: () => void;
   setActiveNodeIds: (ids: string[]) => void;
+  beginExecution: (request: ExecutionRequestSnapshot, retryOf?: string) => { id: string; attempt: number };
+  completeExecution: (result: {
+    executionId?: string;
+    logs: ExecutionLogEntry[];
+    status: ExecutionResultStatus;
+    visitedNodeIds: string[];
+    error?: string;
+    terminalNodeId?: string;
+    terminalOutcome?: string;
+  }) => void;
+  getExecutionRun: (id: string) => ExecutionRun | undefined;
   
   getDecisionGraph: () => DecisionGraph;
   importGraph: (graph: DecisionGraph) => void;
   resetToSample: () => void;
   saveGraph: () => void;
   loadGraph: () => boolean;
+}
+
+function loadExecutionHistory(): ExecutionRun[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(EXECUTION_HISTORY_STORAGE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.filter(isExecutionRun) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistExecutionHistory(history: ExecutionRun[]) {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(EXECUTION_HISTORY_STORAGE_KEY, JSON.stringify(history));
+  }
 }
 
 const initialNodes: FlowNode[] = [
@@ -105,6 +144,10 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   executionLogs: [],
   executionStatus: null,
   activeNodeIds: [],
+  executionHistory: loadExecutionHistory(),
+  currentRunId: null,
+  activeExecution: null,
+  retryRunId: null,
   
   onNodesChange: (changes: NodeChange<FlowNode>[]) => {
     set({
@@ -205,6 +248,56 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   }),
   
   setActiveNodeIds: (ids) => set({ activeNodeIds: ids }),
+
+  beginExecution: (request, retryOf) => {
+    const previousRun = retryOf ? get().executionHistory.find(run => run.id === retryOf) : undefined;
+    const activeExecution = {
+      ...request,
+      id: uuidv4(),
+      attempt: nextAttemptForRetry(previousRun),
+      retryOf,
+      startedAt: new Date().toISOString(),
+    };
+    set({
+      executionLogs: [],
+      executionStatus: null,
+      activeNodeIds: [],
+      activeExecution,
+      currentRunId: activeExecution.id,
+      retryRunId: null,
+      edges: get().edges.map(edge => ({ ...edge, animated: false })),
+    });
+    return { id: activeExecution.id, attempt: activeExecution.attempt };
+  },
+
+  completeExecution: (result) => {
+    const activeExecution = get().activeExecution;
+    if (!activeExecution) return;
+    const run: ExecutionRun = {
+      ...activeExecution,
+      ...result,
+      startedAt: activeExecution.startedAt,
+      finishedAt: new Date().toISOString(),
+    };
+    const executionHistory = appendExecutionRun(get().executionHistory, run);
+    persistExecutionHistory(executionHistory);
+    const edges = get().edges.map(edge => ({
+      ...edge,
+      animated: result.logs.some(log => log.nodeId === edge.source && log.decision === edge.sourceHandle),
+    }));
+    set({
+      executionLogs: result.logs,
+      executionStatus: result.status,
+      activeNodeIds: result.visitedNodeIds,
+      executionHistory,
+      activeExecution: null,
+      currentRunId: run.id,
+      retryRunId: result.status === 'failed' ? run.id : null,
+      edges,
+    });
+  },
+
+  getExecutionRun: (id) => get().executionHistory.find(run => run.id === id),
   
   getDecisionGraph: () => {
     const { nodes, edges } = get();
@@ -242,7 +335,17 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     set({ nodes, edges, selectedNodeId: null, executionLogs: [], executionStatus: null });
   },
   
-  resetToSample: () => set({ nodes: initialNodes, edges: initialEdges, selectedNodeId: null, executionLogs: [], executionStatus: null }),
+  resetToSample: () => set({
+    nodes: initialNodes,
+    edges: initialEdges,
+    selectedNodeId: null,
+    executionLogs: [],
+    executionStatus: null,
+    activeNodeIds: [],
+    currentRunId: null,
+    activeExecution: null,
+    retryRunId: null,
+  }),
 
   saveGraph: () => {
     const graph = get().getDecisionGraph();

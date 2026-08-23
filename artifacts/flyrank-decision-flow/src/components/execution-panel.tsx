@@ -5,9 +5,11 @@ import type { ExecutionLogEntryStatus } from '@workspace/api-client-react';
 import { Badge } from '@/components/ui/badge';
 
 export function ExecutionPanel() {
-  const { executionLogs, executionStatus } = useFlowStore();
+  const { executionLogs, executionStatus, executionHistory, currentRunId, getExecutionRun } = useFlowStore();
+  const currentRun = currentRunId ? getExecutionRun(currentRunId) : undefined;
+  const previousRuns = executionHistory.filter(run => run.id !== currentRunId).slice().reverse();
 
-  if (executionLogs.length === 0 && !executionStatus) {
+  if (executionLogs.length === 0 && !executionStatus && executionHistory.length === 0) {
     return (
       <div className="w-80 h-full flex flex-col bg-card border-l border-border shadow-sm z-10 flex-shrink-0">
         <div className="p-4 border-b border-border bg-muted/20">
@@ -39,7 +41,7 @@ export function ExecutionPanel() {
   return (
     <div className="w-80 h-full flex flex-col bg-card border-l border-border shadow-sm z-10 flex-shrink-0">
       <div className="p-4 border-b border-border bg-muted/20 flex items-center justify-between">
-        <h2 className="font-semibold text-sm uppercase tracking-wider text-foreground">Execution Trace</h2>
+          <h2 className="font-semibold text-sm uppercase tracking-wider text-foreground">Execution History</h2>
         {executionStatus && (
           <Badge variant={executionStatus === 'completed' ? 'default' : 'destructive'} className="uppercase text-[10px]">
             {executionStatus}
@@ -49,6 +51,11 @@ export function ExecutionPanel() {
       
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
+          {currentRun && (
+            <div className="rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
+              Current trace · Attempt {currentRun.attempt}{currentRun.retryOf ? ' (retry)' : ''}
+            </div>
+          )}
           {executionLogs.map((log, i) => (
             <div key={`${log.nodeId}-${i}`} className="relative pl-6 pb-4 last:pb-0">
               {/* Timeline line */}
@@ -92,9 +99,34 @@ export function ExecutionPanel() {
           ))}
           
           {executionStatus === 'failed' && (
-            <div className="flex items-center gap-2 text-destructive bg-destructive/10 p-3 rounded-md text-sm border border-destructive/20 mt-4">
+            <div className="space-y-1 text-destructive bg-destructive/10 p-3 rounded-md text-sm border border-destructive/20 mt-4">
+              <div className="flex items-center gap-2">
               <Ban className="w-4 h-4 shrink-0" />
               <span className="font-medium">Execution Halted due to error.</span>
+              </div>
+              {currentRun?.error && <p className="text-xs pl-6">{currentRun.error}</p>}
+            </div>
+          )}
+
+          {previousRuns.length > 0 && (
+            <div className="border-t border-border pt-4 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Previous runs</p>
+              {previousRuns.map(run => (
+                <details key={run.id} className="rounded-md border border-border bg-muted/20 p-3">
+                  <summary className="cursor-pointer text-xs font-medium text-foreground">
+                    Attempt {run.attempt} · {run.status} · {new Date(run.finishedAt).toLocaleString()}
+                  </summary>
+                  <div className="mt-3 space-y-2 text-xs">
+                    {run.error && <p className="text-destructive">{run.error}</p>}
+                    {run.terminalOutcome && <p className="text-muted-foreground">Outcome: {run.terminalOutcome}</p>}
+                    {run.logs.map((log, index) => (
+                      <p key={`${run.id}-${index}`} className="rounded bg-background p-2 text-muted-foreground">
+                        <strong className="text-foreground">{log.label}:</strong> {log.message}
+                      </p>
+                    ))}
+                  </div>
+                </details>
+              ))}
             </div>
           )}
         </div>

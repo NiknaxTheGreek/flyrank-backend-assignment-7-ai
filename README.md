@@ -9,8 +9,9 @@ An independent React decision-flow assignment project for authoring binary AI ro
 - **Inngest function** — every decision evaluation in the registered `execute-decision-graph` function is wrapped in a meaningful, dynamically named Inngest step.
 - **Safe AI mode** — uses Replit AI Integrations through an OpenAI-compatible SDK, treats all prompt/context/input text as untrusted data, and validates model output again before routing.
 - **Deterministic stub mode** — test-friendly execution without an external call.
-- **Visible resilience** — graph validation, execution highlights, animated traversed edges, an execution trace, failure messages, and retry-ready execution controls.
-- **Persistence and portability** — JSON import/export plus browser-local save/load.
+- **Visible resilience** — graph validation, execution highlights, animated traversed edges, detailed failure messages, explicit retry controls, and tracked retry attempts.
+- **Execution history** — each completed or failed run retains its request settings, trace, outcome/error, and retry lineage in browser-local state for later inspection.
+- **Persistence and portability** — JSON import/export plus browser-local graph save/load.
 
 ## Running the app
 

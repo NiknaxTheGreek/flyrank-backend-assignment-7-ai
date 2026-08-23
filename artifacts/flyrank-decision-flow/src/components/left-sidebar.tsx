@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFlowStore } from '@/store/flow-store';
 import { useGetDecisionFlowCapabilities, useExecuteDecisionGraph, useValidateDecisionGraph } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
@@ -6,11 +6,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NodeEditor } from './node-editor';
-import { Play, CheckCircle2, Download, Upload, RotateCcw, Save, FolderOpen } from 'lucide-react';
+import { Play, CheckCircle2, Download, Upload, RotateCcw, Save, FolderOpen, RotateCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import type { ExecutionLogEntry } from '@workspace/api-client-react';
 
 export function LeftSidebar() {
-  const { selectedNodeId, nodes, getDecisionGraph, setExecutionLogs, clearExecution, setActiveNodeIds, importGraph, resetToSample, saveGraph, loadGraph } = useFlowStore();
+  const {
+    selectedNodeId,
+    nodes,
+    getDecisionGraph,
+    beginExecution,
+    completeExecution,
+    getExecutionRun,
+    retryRunId,
+    importGraph,
+    resetToSample,
+    saveGraph,
+    loadGraph,
+  } = useFlowStore();
   const { data: caps } = useGetDecisionFlowCapabilities();
   const executeMutation = useExecuteDecisionGraph();
   const validateMutation = useValidateDecisionGraph();
@@ -21,9 +34,9 @@ export function LeftSidebar() {
   const [mode, setMode] = useState<string>('stub');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!startNodeId && nodes.length > 0) {
-    setStartNodeId(nodes[0].id);
-  }
+  useEffect(() => {
+    if (!startNodeId && nodes.length > 0) setStartNodeId(nodes[0].id);
+  }, [nodes, startNodeId]);
 
   const handleValidate = async () => {
     try {
@@ -50,8 +63,13 @@ export function LeftSidebar() {
     }
   };
 
-  const handleExecute = async () => {
-    if (!startNodeId) {
+  const handleExecute = async (retryOf?: string) => {
+    const failedRun = retryOf ? getExecutionRun(retryOf) : undefined;
+    const request = failedRun
+      ? { startNodeId: failedRun.startNodeId, input: failedRun.input, mode: failedRun.mode }
+      : { startNodeId, input: inputData, mode: mode as 'stub' | 'ai' };
+
+    if (!request.startNodeId) {
       toast({
         title: "No Start Node",
         description: "Please select a starting node.",
@@ -60,21 +78,28 @@ export function LeftSidebar() {
       return;
     }
     
-    clearExecution();
+    const activeRun = beginExecution(request, retryOf);
     
     try {
       const graph = getDecisionGraph();
       const res = await executeMutation.mutateAsync({
         data: {
           graph,
-          startNodeId,
-          input: inputData,
-          mode: mode as 'stub' | 'ai'
+          startNodeId: request.startNodeId,
+          input: request.input,
+          mode: request.mode,
         }
       });
       
-      setExecutionLogs(res.logs, res.status);
-      setActiveNodeIds(res.visitedNodeIds);
+      completeExecution({
+        executionId: res.executionId,
+        logs: res.logs,
+        status: res.status,
+        visitedNodeIds: res.visitedNodeIds,
+        error: res.error,
+        terminalNodeId: res.terminalNodeId,
+        terminalOutcome: res.terminalOutcome,
+      });
       
       if (res.status === 'failed') {
         toast({
@@ -85,13 +110,27 @@ export function LeftSidebar() {
       } else {
         toast({
           title: "Execution Complete",
-          description: `Ended at ${res.terminalNodeId ? "node " + res.terminalNodeId : "unknown"} with outcome ${res.terminalOutcome || "none"}.`,
+          description: `Attempt ${activeRun.attempt} ended at ${res.terminalNodeId ? "node " + res.terminalNodeId : "unknown"} with outcome ${res.terminalOutcome || "none"}.`,
         });
       }
     } catch (e) {
+      const message = "Failed to communicate with the execution engine.";
+      const errorLog: ExecutionLogEntry = {
+        sequence: 1,
+        nodeId: request.startNodeId,
+        label: "Execution request",
+        status: "error",
+        message,
+      };
+      completeExecution({
+        logs: [errorLog],
+        status: 'failed',
+        visitedNodeIds: [],
+        error: message,
+      });
       toast({
         title: "Execution Error",
-        description: "Failed to communicate with the execution engine.",
+        description: message,
         variant: "destructive"
       });
     }
@@ -197,7 +236,7 @@ export function LeftSidebar() {
 
               <Button 
                 className="w-full font-bold shadow-md hover-elevate-2 transition-transform" 
-                onClick={handleExecute}
+                onClick={() => handleExecute()}
                 disabled={executeMutation.isPending}
                 data-testid="button-execute"
               >
@@ -209,6 +248,26 @@ export function LeftSidebar() {
                   </>
                 )}
               </Button>
+
+              {retryRunId && (() => {
+                const failedRun = getExecutionRun(retryRunId);
+                return failedRun ? (
+                  <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+                    <p className="text-xs font-medium text-destructive">
+                      Attempt {failedRun.attempt} failed. Error details remain in Execution History.
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="w-full border-destructive/40 text-destructive hover:bg-destructive/10"
+                      onClick={() => handleExecute(failedRun.id)}
+                      disabled={executeMutation.isPending}
+                      data-testid="button-retry-execution"
+                    >
+                      <RotateCw className="w-4 h-4 mr-2" /> Retry as attempt {failedRun.attempt + 1}
+                    </Button>
+                  </div>
+                ) : null;
+              })()}
               
               <Button 
                 variant="outline"

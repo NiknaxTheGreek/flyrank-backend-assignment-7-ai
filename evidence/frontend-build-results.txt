@@ -4,10 +4,10 @@
 
 vite v7.3.6 building client environment for production...
 transforming...
-✓ 2010 modules transformed.
-rendering chunks...
-computing gzip size...
+✓ 2011 modules transformed.
 dist/public/index.html                   1.44 kB │ gzip:   0.55 kB
-dist/public/assets/index-C46APZlE.css  112.27 kB │ gzip:  18.47 kB
-dist/public/assets/index-5XhBdRPT.js   598.56 kB │ gzip: 192.28 kB
-✓ built in 3.92s
+dist/public/assets/index--JlWuRbl.css  113.13 kB │ gzip:  18.54 kB
+dist/public/assets/index-yJeykmx0.js   602.87 kB │ gzip: 193.50 kB
+✓ built in 4.44s
+
+The build also emitted non-failing source-map location warnings for existing UI components and the standard Vite large-chunk warning.

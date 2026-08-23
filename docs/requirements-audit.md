@@ -15,8 +15,9 @@
 | Explicit terminal outcomes | Nodes with `terminalOutcome` end execution visibly with that outcome. |
 | Invalid output, missing node/branch, cycles | Predictable `INVALID_MODEL_OUTPUT`, `MISSING_NODE`, `MISSING_BRANCH`, and cycle validation/runtime outcomes are sent to the UI trace and tested. |
 | Deterministic stub mode | Stub routing is deterministic and is the default execution mode. |
-| Tests | Nine focused Vitest tests cover YES, NO, ambiguous text, adversarial-style output, graph mutation, cycle detection, missing branch, missing node, and strict validation. |
-| Stage 4 polish | Visual active-node states, animated traversed edges, execution history, JSON import/export, local save/load, validation/error surfacing, and rerunnable execution controls are implemented. |
+| Tests | Eleven focused Vitest tests cover YES, NO, ambiguous text, adversarial-style output, graph mutation, cycle detection, missing branch, missing node, strict validation, multi-run history retention, and retry-attempt numbering. |
+| Execution history and retry | Every finished run is retained in browser-local history with trace, outcome/error, request settings, and attempt metadata. A failed run exposes a Retry action that replays its captured settings as the next numbered attempt while leaving prior error details inspectable. |
+| Stage 4 polish | Visual active-node states, animated traversed edges, persistent execution history, JSON import/export, local save/load, validation/error surfacing, and explicit retry controls are implemented. |
 | Actual Inngest checkpoint | The dev server registered `function_count=1`, received `flyrank/decision-flow.execute`, initialized `execute-decision-graph`, and received `inngest/function.finished`. |
 | Genuine managed LLM checkpoint | Replit AI Integrations produced strict `YES` with provider/model/status/latency/token usage in `evidence/managed-llm-checkpoint.json`. |
 | Documentation and evidence | README, this audit, source-gap note, env notes, screenshot, result files, and Git state are stored in the workspace. |
