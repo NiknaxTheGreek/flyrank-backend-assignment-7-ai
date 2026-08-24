@@ -21,7 +21,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -55,3 +55,70 @@ jobs:
 
       - name: Build API server
         run: pnpm --filter @workspace/api-server run build
+
+      - name: Prove current workflow executes through Inngest Dev Server
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PORT=3000 INNGEST_DEV=1 pnpm --filter @workspace/api-server run start > /tmp/a7-api.log 2>&1 &
+          API_PID=$!
+          npx --yes --ignore-scripts=false inngest-cli@latest dev --no-discovery -u http://127.0.0.1:3000/api/inngest > /tmp/a7-inngest.log 2>&1 &
+          INNGEST_PID=$!
+          trap 'kill $API_PID $INNGEST_PID 2>/dev/null || true' EXIT
+
+          for attempt in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/api/healthz >/dev/null 2>&1 && \
+               curl -fsS http://127.0.0.1:8288/ >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl -fsS http://127.0.0.1:3000/api/inngest | tee /tmp/a7-registration.json
+
+          curl --fail-with-body --max-time 70 -sS \
+            -X POST http://127.0.0.1:3000/api/decision-flow/execute \
+            -H 'content-type: application/json' \
+            -d '{
+              "graph": {
+                "nodes": [
+                  {"id":"start","label":"Safe?","prompt":"Is this safe?"},
+                  {"id":"yes","label":"Approved","prompt":"Terminal approved outcome","terminalOutcome":"APPROVED"},
+                  {"id":"no","label":"Review","prompt":"Terminal review outcome","terminalOutcome":"REVIEW"}
+                ],
+                "edges": [
+                  {"id":"yes-edge","source":"start","target":"yes","branch":"YES"},
+                  {"id":"no-edge","source":"start","target":"no","branch":"NO"}
+                ]
+              },
+              "startNodeId":"start",
+              "input":"ordinary request",
+              "mode":"stub"
+            }' | tee /tmp/a7-execution.json
+
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const result = JSON.parse(fs.readFileSync('/tmp/a7-execution.json', 'utf8'));
+          if (result.status !== 'completed') throw new Error(JSON.stringify(result));
+          if (result.terminalOutcome !== 'APPROVED') throw new Error(JSON.stringify(result));
+          if (JSON.stringify(result.visitedNodeIds) !== JSON.stringify(['start','yes'])) {
+            throw new Error(JSON.stringify(result));
+          }
+          console.log(`INNGEST_EXECUTION_GATE=PASS executionId=${result.executionId}`);
+          NODE
+
+          grep -q 'execute-decision-graph' /tmp/a7-inngest.log
+          echo 'INNGEST_FUNCTION_OBSERVED=PASS'
+
+      - name: Upload Inngest runtime logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: assignment-7-inngest-runtime-evidence
+          path: |
+            /tmp/a7-api.log
+            /tmp/a7-inngest.log
+            /tmp/a7-registration.json
+            /tmp/a7-execution.json
+          if-no-files-found: warn

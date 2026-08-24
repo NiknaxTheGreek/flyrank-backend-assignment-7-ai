@@ -4,6 +4,7 @@ import {
   runDecisionGraph,
   validateGraph,
   type DecisionGraphInput,
+  type StepRunner,
 } from "../src/lib/decision-flow-engine";
 
 const graph: DecisionGraphInput = {
@@ -45,6 +46,42 @@ describe("graph-driven execution", () => {
     const result = await runDecisionGraph({ graph, startNodeId: "start" }, undefined, async () => "NO");
     expect(result.status).toBe("completed");
     expect(result.terminalOutcome).toBe("REVIEW_REQUIRED");
+  });
+
+  it("maps every decision node into the supplied step runner", async () => {
+    const twoDecisionGraph: DecisionGraphInput = {
+      nodes: [
+        { id: "first", label: "First decision", prompt: "First?" },
+        { id: "second", label: "Second decision", prompt: "Second?" },
+        { id: "approved", label: "Approved", prompt: "", terminalOutcome: "APPROVED" },
+        { id: "rejected", label: "Rejected", prompt: "", terminalOutcome: "REJECTED" },
+      ],
+      edges: [
+        { id: "first-yes", source: "first", target: "second", branch: "YES" },
+        { id: "first-no", source: "first", target: "rejected", branch: "NO" },
+        { id: "second-yes", source: "second", target: "approved", branch: "YES" },
+        { id: "second-no", source: "second", target: "rejected", branch: "NO" },
+      ],
+    };
+    const stepNames: string[] = [];
+    const stepRunner: StepRunner = {
+      async run<T>(name: string, action: () => Promise<T>): Promise<T> {
+        stepNames.push(name);
+        return action();
+      },
+    };
+    const decisions = ["YES", "YES"];
+    const result = await runDecisionGraph(
+      { graph: twoDecisionGraph, startNodeId: "first" },
+      stepRunner,
+      async () => decisions.shift() ?? "NO",
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.visitedNodeIds).toEqual(["first", "second", "approved"]);
+    expect(stepNames).toHaveLength(2);
+    expect(stepNames[0]).toContain("decision-1-first-decision");
+    expect(stepNames[1]).toContain("decision-2-second-decision");
   });
 
   it("fails visibly for ambiguous model output", async () => {
