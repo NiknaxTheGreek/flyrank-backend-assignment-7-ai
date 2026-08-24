@@ -84,8 +84,8 @@ jobs:
               "graph": {
                 "nodes": [
                   {"id":"start","label":"Safe?","prompt":"Is this safe?"},
-                  {"id":"yes","label":"Approved","prompt":"","terminalOutcome":"APPROVED"},
-                  {"id":"no","label":"Review","prompt":"","terminalOutcome":"REVIEW"}
+                  {"id":"yes","label":"Approved","prompt":"Terminal approved outcome","terminalOutcome":"APPROVED"},
+                  {"id":"no","label":"Review","prompt":"Terminal review outcome","terminalOutcome":"REVIEW"}
                 ],
                 "edges": [
                   {"id":"yes-edge","source":"start","target":"yes","branch":"YES"},
